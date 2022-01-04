@@ -1,0 +1,4 @@
+/.venv/
+/.idea/
+/parsed/
+/fips_open_register_documents_parser/__pycache__/
