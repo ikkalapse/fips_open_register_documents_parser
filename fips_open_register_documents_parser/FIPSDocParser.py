@@ -40,6 +40,70 @@ class FIPSDocParser:
         raise NotImplementedError()
 
 
+class FIPSDocPatentParser(FIPSDocParser):
+
+    def parse(self):
+        self.parsed['status'] = self.find_status()
+        self.parsed['application'] = self.find_application()
+        self.parsed['reg_number'] = self.find_regnumber()
+        self.parsed['reg_date'] = self.find_regdate()
+        self.parsed['authors'] = self.find_authors()
+        self.parsed['holders'] = self.find_holders()
+        self.parsed['title'] = self.find_title()
+        self.parsed['prior'] = self.find_prior()
+
+    def find_status(self):
+        status = re.search(r"<td id=\"StatusR\">(.+)(\n|<br)", self.html_data)
+        return status.group(1) if status is not None else ''
+
+    def find_application(self):
+        app_data = re.search(r"\(21\)\s*\(22\)\s*Заявка:\s*<b><a\s.+\">(.+)<\/a>, (\d{1,2}\.\d{1,2}\.\d{4})<\/b>",
+                             self.html_data)
+        return {'number': app_data.group(1) if app_data is not None else '',
+                'date': app_data.group(2) if app_data is not None else ''}
+
+    def find_regnumber(self):
+        data = re.search(r"<a title=\"Ссылка на реестр.+DocNumber=(\d+)&amp;TypeFile=html", self.html_data)
+        return data.group(1) if data is not None else ''
+
+    def find_regdate(self):
+        data = re.search(r"<p>Дата регистрации:<br>\n<b>(.+)</b>", self.html_data)
+        return data.group(1) if data is not None else ''
+
+    def find_authors(self):
+        data = re.search(r"<p>\(72\) Автор\(ы\):<b>\n(?:<br>)?(.+)</b>", self.html_data)
+        return data.group(1) if data is not None else ''
+
+    def find_holders(self):
+        data = re.search(r"<p>\(73\) Патентообладатель\(и\):<b>\n(?:<br>)?(.+)</b>", self.html_data)
+        return data.group(1) if data is not None else ''
+
+    def find_title(self):
+        data = re.search(r"\(54\) <b>(.+)<\/b>", self.html_data)
+        return data.group(1) if data is not None else ''
+
+    def find_aprior(self):
+        data = re.search(r"<p class=\"prior\">Приоритет\(ы\):<\/p>\n<p>\n\t+\(22\) Дата подачи заявки: <b>(.+)</b>",
+                         self.html_data)
+        return data.group(1) if data is not None else ''
+
+    def find_kprior(self):
+        data = re.search(r"<p class=\"prior\">Приоритет\(ы\):<\/p>\n<p>\n\t+\(30\) Конвенционный приоритет:<b>;<br>(\d\{2}.\d{2}\.\d{2,4})",
+                         self.html_data)
+        return data.group(1) if data is not None else ''
+
+    def find_dprior(self):
+        data = re.search(r"\(24\) Дата начала отсчета срока действия патента:\s*<br>\n<b>(.+)<\/b>",
+                         self.html_data)
+        return data.group(1) if data is not None else ''
+
+    def find_prior(self):
+        aprior = self.find_aprior()
+        kprior = self.find_kprior()
+        dprior = self.find_dprior()
+        return aprior if aprior is not '' else dprior if dprior is not '' else kprior
+
+
 class FIPSDocEVMDBParser(FIPSDocParser):
 
     def parse(self):
