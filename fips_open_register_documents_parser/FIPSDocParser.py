@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import re
 
 
@@ -14,7 +13,13 @@ class FIPSDocParser:
 
     @html_data.setter
     def html_data(self, value):
-        self.__html_data = re.sub(r"[\s\t]+", " ", re.sub(r"\n", "", str(value)))
+        value = str(value)
+        # value = re.sub(r"\n", "", value)
+        # value = re.sub(r"[\s\t]+", " ", value)
+        value = re.sub(r"\t+", " ", value)
+        # value = re.sub(r"", " ", value)
+        value = re.sub(r"\r?\n+\s+", "", value)
+        self.__html_data = value
         self.parsed = {}
 
     def parse(self):
@@ -28,8 +33,9 @@ class FIPSDocParser:
                 f()
 
     def find_reg_number(self):
-        data = re.search(r"<a title=\"Ссылка на реестр \(открывается в отдельном окне\).+DocNumber=(.+?)&amp;TypeFile=html",
-                         self.html_data)
+        data = re.search(
+            r"<a title=\"Ссылка на реестр \(открывается в отдельном окне\).+DocNumber=(.+?)&amp;TypeFile=html",
+            self.html_data)
         self.parsed['reg_number'] = data.group(1) if data is not None else ''
 
     def find_reg_date(self):
@@ -44,13 +50,16 @@ class FIPSDocPatentParser(FIPSDocParser):
         self.parsed['status'] = status.group(1) if status is not None else ''
 
     def find_app_data(self):
-        app_data = re.search(r"\(21\)\s*\(22\)\s*Заявка:\s*<b><a\s.+\">(.+)</a>,?[\s\n\t]*(\d{1,2}\.\d{1,2}\.\d{4})</b>",
-                             self.html_data)
+        app_data = re.search(
+            r"\(21\)\s*\(22\)\s*Заявка:\s*<b><a\s.+\">(.+)</a>,?[\s\n\t]*(\d{1,2}\.\d{1,2}\.\d{4})</b>",
+            self.html_data)
         self.parsed['app_number'] = app_data.group(1) if app_data is not None else ''
         self.parsed['app_date'] = app_data.group(2) if app_data is not None else ''
 
     def find_pub_date(self):
-        data = re.search(r"<p>(?:\(45\))?\s*Опубликовано:\s*(?:<br>)?[\s\n\t]*<b>(?:<a title=.+target=\"_blank\">)(\d{1,2}\.\d{1,2}\.\d{4})(?:</a>)?</b>", self.html_data)
+        data = re.search(
+            r"<p>(?:\(45\))?\s*Опубликовано:\s*(?:<br>)?[\s\n\t]*<b>(?:<a title=.+target=\"_blank\">)(\d{1,2}\.\d{1,2}\.\d{4})(?:</a>)?</b>",
+            self.html_data)
         self.parsed['pub_date'] = data.group(1) if data is not None else ''
 
     def find_authors(self):
@@ -66,13 +75,15 @@ class FIPSDocPatentParser(FIPSDocParser):
         self.parsed['title'] = data.group(1) if data is not None else ''
 
     def find_prior_app(self):
-        data = re.search(r"<p class=\"prior\">Приоритет\(ы\):</p>[\s\n\t]*<p>[\s\n\t]*\(22\) Дата подачи заявки: <b>(.+?)</b>",
-                         self.html_data)
+        data = re.search(
+            r"<p class=\"prior\">Приоритет\(ы\):</p>[\s\n\t]*<p>[\s\n\t]*\(22\) Дата подачи заявки: <b>(.+?)</b>",
+            self.html_data)
         self.parsed['prior_app'] = data.group(1) if data is not None else ''
 
     def find_prior_conv(self):
-        data = re.search(r"<p class=\"prior\">Приоритет\(ы\):</p>[\s\n\t]*<p>[\s\n\t]*\(30\) Конвенционный приоритет:<b>;<br>(\d\{2}.\d{2}\.\d{2,4})",
-                         self.html_data)
+        data = re.search(
+            r"<p class=\"prior\">Приоритет\(ы\):</p>[\s\n\t]*<p>[\s\n\t]*\(30\) Конвенционный приоритет:<b>;<br>(\d\{2}.\d{2}\.\d{2,4})",
+            self.html_data)
         self.parsed['prior_conv'] = data.group(1) if data is not None else ''
 
     def find_start_date(self):
@@ -129,7 +140,6 @@ class FIPSDocEVMDBParser(FIPSDocParser):
         self.parsed['title'] = data.group(1) if data is not None else ''
 
     def find_title_new(self):
-
         '''try:
             # Учитываем вхождение слова "правообладатель" в любых вариантах
             data = content.find_all('p', {'class': 'izv'},
@@ -148,13 +158,12 @@ class FIPSDocEVMParser(FIPSDocEVMDBParser):
     """Парсер свидетельства о регистрации ПрЭВМ."""
 
     def find_tool(self):
-        data = re.match(r"<p class=\"TitAbs\">[\s\n]*<b>[\s\n]*Язык программирования:[\s\n]*</b>[\s\n]*(.+?)</p>",
-                        self.html_data)
+        data = re.search(r"<b>Язык программирования:[\n\s]*</b>[\n\s]*(.+?)</p>", self.html_data)
         self.parsed['tool'] = data.group(1) if data is not None else ''
 
     def find_size(self):
-        data = re.match(r"<p class=\"TitAbs\">[\s\n]*<b>[\s\n]*Объ[её]м программы для ЭВМ:[\s\n]*</b>[\s\n]*(.+?)</p>",
-                        self.html_data)
+        data = re.search(r"<b>Объ[её]м программы для ЭВМ:[\n\s]*</b>[\n\s]*(.+?)</p>",
+                         self.html_data)
         self.parsed['size'] = data.group(1) if data is not None else ''
 
 
@@ -162,13 +171,14 @@ class FIPSDocDBParser(FIPSDocEVMDBParser):
     """Парсер свидетельства о регистрации БД."""
 
     def find_tool(self):
-        data = re.match(r"<p class=\"TitAbs\">[\s\n]*<b>Вид и версия системы управления базой данных: </b>[\s\n\t]*(.+?)</p>",
-                        self.html_data)
+        data = re.search(r"<b>Вид и версия системы управления базой данных:[\n\s]*</b>[\n\s]*(.+?)</p>",
+                         self.html_data)
+
         self.parsed['tool'] = data.group(1) if data is not None else ''
 
     def find_size(self):
-        data = re.match(r"<p class=\"TitAbs\">[\s\n\t]*<b>[\s\n\t]*Объ[её]м базы данных:[\s\n\t]*</b>[\s\n\t]*(.+?)</p>",
-                        self.html_data)
+        data = re.search(r"<b>Объ[её]м базы данных:[\n\s]*</b>[\n\s]*(.+?)</p>",
+                         self.html_data)
         self.parsed['size'] = data.group(1) if data is not None else ''
 
 
