@@ -144,7 +144,6 @@ class FIPSDocPatentParser(FIPSDocParser):
         codes = 'PD4A PC4A TK4A TC4A'.split()
         self.parsed['izv'] = [x for x in [m.groupdict() for m in r.finditer(self.html_data_min)] if x['code'] in codes]
         self.extract_izv()
-        self.parsed['izv_count'] = len(self.parsed['izv'])
 
     def extract_izv(self):
         for i, izv in enumerate(self.parsed['izv']):
@@ -156,6 +155,7 @@ class FIPSDocPatentParser(FIPSDocParser):
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
+
                 data = re.search(r"<p class=\"izv\">Следует читать.+?"
                                  r"\(72\) Автор\(ы\):\s*"
                                  r"<br>(?:<b>)?(.+?)(?:</b>|<br>)",
@@ -181,31 +181,6 @@ class FIPSDocPatentParser(FIPSDocParser):
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
-
-    '''def find_authors_izv(self):
-        """Сведения обавторах, указанные в Извещениях."""
-
-        data = re.findall(r"<p class=\"izv\">\(72\) Автор\(ы\):\s*<br>\n?"
-                          r"<b>(.+?)</b>",
-                          self.html_data,
-                          flags=re.IGNORECASE)
-        self.parsed['authors_izv'] = data
-
-    def find_holders_izv(self):
-        """Правообладатели, которые указаны в извещениях."""
-
-        data = re.findall(r"<p class=\"izv\">\n?"
-                          r"Следует читать:\s*<b>\n?"
-                          r"<[a-z\d\-]+>\(73\) Патентообладатель\(и\): <br>(.+?)</[a-z\d\-]+>",
-                          self.html_data,
-                          flags=re.IGNORECASE)
-        self.parsed['holders_izv_err'] = data
-
-        data = re.findall(r"<p class=\"izv\">\n?"
-                          r"\(73\) Патентообладатель\(и\): <br>(?:<b>)?(.+?)</[a-z\d\-]+>",
-                          self.html_data,
-                         flags=re.IGNORECASE)
-        self.parsed['holders_izv_2'] = data'''
 
 
 class FIPSDocEVMDBParser(FIPSDocParser):
