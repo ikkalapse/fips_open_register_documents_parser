@@ -61,14 +61,14 @@ class FIPSDocPatentParser(FIPSDocParser):
     def find_status(self):
         """Статус патента."""
 
-        status = re.search(r"<td id=\"StatusR\">(.+)(\n|<br)", self.html_data)
+        status = re.search(r"<td id=\"StatusR\">(.+?)(\(|\n|<br)", self.html_data)
         self.parsed['status'] = status.group(1) if status is not None else ''
 
     def find_app_data(self):
         """Данные заявки на выдачу патента."""
 
         app_data = re.search(
-            r"\(21\)\s*\(22\)\s*Заявка:\s*<b><a\s.+\">(.+)</a>,?[\s\n\t]*(\d{1,2}\.\d{1,2}\.\d{4})</b>",
+            r"\(21\)\s*\(22\)\s*Заявка:\s*<b><a\s.+\">(.+?)</a>,?[\s\n\t]*(.+?)</b>",
             self.html_data)
         self.parsed['app_number'] = app_data.group(1) if app_data is not None else ''
         self.parsed['app_date'] = app_data.group(2) if app_data is not None else ''
@@ -77,15 +77,15 @@ class FIPSDocPatentParser(FIPSDocParser):
         """Дата публикации."""
 
         data = re.search(
-            r"<p>(?:\(45\))?\s*Опубликовано:\s*(?:<br>)?[\s\n\t]*<b>(?:<a title=.+target=\"_blank\">)(\d{1,2}\.\d{1,"
-            r"2}\.\d{4})(?:</a>)?</b>",
+            r"<p>(?:\(45\))?\s*Опубликовано:\s*(?:<br>)?[\s\n\t]*<b>(?:<a title=\WОфициальная "
+            r"публикация.+?target=\"_blank\">)(.+?)(?:</a>)",
             self.html_data)
         self.parsed['pub_date'] = data.group(1) if data is not None else ''
 
     def find_authors(self):
         """Авторы изобретения/полезной модели."""
 
-        data = re.search(r"<p>\(72\) Автор\(ы\):<b>[\s\n\t](?:<br>)?(.+?)</b>", self.html_data)
+        data = re.search(r"<p>\(72\) Автор\(ы\):<b>[\s\n\t]*(?:<br>)?(.+?)</b>", self.html_data)
         self.parsed['authors'] = data.group(1) if data is not None else ''
 
     def find_holders(self):
@@ -111,10 +111,9 @@ class FIPSDocPatentParser(FIPSDocParser):
     def find_prior_conv(self):
         """Конвенционный приоритет."""
 
-        data = re.search(
-            r"<p class=\"prior\">Приоритет\(ы\):</p>[\s\n\t]*<p>[\s\n\t]*\(30\) Конвенционный приоритет:<b>;<br>(\d\{"
-            r"2}.\d{2}\.\d{2,4})",
-            self.html_data)
+        data = re.search(r"<p class=\"prior\">Приоритет\(ы\):</p>[\s\n\t]*<p>[\s\n\t]*\(30\) Конвенционный "
+                         r"приоритет:(?:.*?)?<br>(.+?)</b>",
+                         self.html_data)
         self.parsed['prior_conv'] = data.group(1) if data is not None else ''
 
     def find_start_date(self):
@@ -123,6 +122,39 @@ class FIPSDocPatentParser(FIPSDocParser):
         data = re.search(r"\(24\) Дата начала отсчета срока действия патента:\s*<br>\n<b>(.+?)<\/b>",
                          self.html_data)
         self.parsed['start_date'] = data.group(1) if data is not None else ''
+
+    def find_authors_izv(self):
+        """Сведения обавторах, указанные в Извещениях."""
+
+        data = re.findall(r"<p class=\"izv\">\(72\) Автор\(ы\):\s*<br>\n?"
+                          r"<b>(.+?)</b>",
+                          self.html_data,
+                          flags=re.IGNORECASE)
+        self.parsed['authors_izv'] = data
+
+    def find_holders_izv(self):
+        """Правообладатели, которые указаны в извещениях."""
+
+        '''
+        <p class="izv">
+		Следует читать: 
+		<b>
+        <ru-b906i>(72) Автор(ы): <br>.+?<br>(73) Патентообладатель(и): <br>.+?<br>Адрес для переписки: <br>410054, г. Саратов, а/я 3315, Наумовой Е.В.</ru-b906i>
+        </b>
+        '''
+
+        data = re.findall(r"<p class=\"izv\">\n?"
+                          r"Следует читать:\s*<b>\n?"
+                          r"<[a-z\d\-]+>\(73\) Патентообладатель\(и\): <br>(.+?)</[a-z\d\-]+>",
+                          self.html_data,
+                          flags=re.IGNORECASE)
+        self.parsed['holders_izv_err'] = data
+
+        data = re.findall(r"<p class=\"izv\">\n?"
+                          r"\(73\) Патентообладатель\(и\): <br>(?:<b>)?(.+?)</[a-z\d\-]+>",
+                          self.html_data,
+                         flags=re.IGNORECASE)
+        self.parsed['holders_izv_2'] = data
 
 
 class FIPSDocEVMDBParser(FIPSDocParser):
