@@ -228,6 +228,14 @@ class FIPSDocEVMDBParser(FIPSDocParser):
                           self.html_data, flags=re.IGNORECASE)
         self.parsed['holders_izv'] = data
 
+    def find_authors_new(self):
+        """Авторы, которые указаны в извещениях."""
+
+        data = re.findall(r"<p class=\"izv\">.*?Автор[ы]?.*</p>\n?(?:<p class=\"izv2\">Следует "
+                          r"читать:</p>\n?)?<p class=\"izvValue\">(.+?)</p>",
+                          self.html_data, flags=re.IGNORECASE)
+        self.parsed['authors_izv'] = data
+
     def find_title(self):
         """Название ОИС."""
 
