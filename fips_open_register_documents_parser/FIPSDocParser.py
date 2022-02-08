@@ -1,4 +1,5 @@
 import re
+from operator import itemgetter
 
 
 class DocumentNotExistsInOpenRegistry(Exception):
@@ -146,8 +147,9 @@ class FIPSDocPatentParser(FIPSDocParser):
         self.extract_izv()
 
     def extract_izv(self):
-        for i, izv in enumerate(self.parsed['izv']):
+        """Извлечение имён новых авторов и/или патентообладателей."""
 
+        for i, izv in enumerate(self.parsed['izv']):
             if izv['code'] == 'TK4A':
                 data = re.search(r"<p class=\"izv\">Следует читать.+?"
                                  r"\(73\) Патентообладатель\(и\):\s*"
@@ -155,7 +157,6 @@ class FIPSDocPatentParser(FIPSDocParser):
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
-
                 data = re.search(r"<p class=\"izv\">Следует читать.+?"
                                  r"\(72\) Автор\(ы\):\s*"
                                  r"<br>(?:<b>)?(.+?)(?:</b>|<br>)",
@@ -171,16 +172,17 @@ class FIPSDocPatentParser(FIPSDocParser):
                 self.parsed['izv'][i]['authors'] = data.group(1) if data is not None else ''
 
             if izv['code'] == 'PD4A':
-                data = re.search(r"\(73\) Патентообладатель\(и\):<br><b>(.+?)</b>",
+                data = re.search(r"\(73\) (?:Новый\s+)?Патентообладатель(?:\(и\))?:<br><b>(.+?)</b>",
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
 
             if izv['code'] == 'PC4A':
-                data = re.search(r"\(73\) Патентообладатель\(и\):<br><b>(.+?)</b>",
+                data = re.search(r"\(73\) (?:Новый\s+)?Патентообладатель(?:\(и\))?:<br><b>(.+?)</b>",
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
+        self.parsed['izv'] = sorted(self.parsed['izv'], key=itemgetter('pub_date'), reverse=True)
 
 
 class FIPSDocEVMDBParser(FIPSDocParser):
