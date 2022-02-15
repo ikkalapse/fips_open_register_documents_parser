@@ -138,7 +138,7 @@ class FIPSDocPatentParser(FIPSDocParser):
                        r"(?P<full_name>(?:(?P<code>[A-Z\d]{4}?) (?:\- )?)?(?P<name>.+?))</p>"
                        r"(<p class=\"izv2\"></p>)?"
                        r"(?P<text>.+?)"  # текст извещения до даты внесения записи в Госреестр
-                       r"<p class=\"izv\">(?:Извещение опубликовано|Дата публикации и номер бюллетеня): <b>.*?"
+                       r"<p class=\"izv\">(?:Дата публикации|Извещение опубликовано|Дата публикации и номер бюллетеня): <b>.*?"
                        r"(?P<pub_date>\d{2}\.\d{2}\.\d{4}?)</[a-z]>",
                        flags=re.IGNORECASE)
         # Оставляем извещения, связанные с изменением данных о правообладателях и авторах
@@ -157,12 +157,23 @@ class FIPSDocPatentParser(FIPSDocParser):
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
+                # проверка авторов -- соотвтствие шаблону 1
                 data = re.search(r"<p class=\"izv\">Следует читать.+?"
                                  r"\(72\) Автор\(ы\):\s*"
                                  r"<br>(?:<b>)?(.+?)(?:</b>|<br>)",
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['authors'] = data.group(1) if data is not None else ''
+                # проверка авторов -- соответствие шаблону 2
+                if self.parsed['izv'][i]['authors'] == '':
+                    # пример:
+                    # <p class="izv">Следует читать: <b><ru-b906i>(72) иванов, Петров, Сидоров</ru-b906i></b></p>
+                    data = re.search(r"<p class=\"izv\">Следует читать.+?"
+                                     r"(?:<b>)?(?:<ru\-[\da-z]+>)?"
+                                     r"\(72\)\s*(?:<b>)?(.+?)(?:</ru\-[\da-z]+>)?(?:</b>|<br>|</p>)",
+                                     izv['text'],
+                                     flags=re.IGNORECASE)
+                    self.parsed['izv'][i]['authors'] = data.group(1) if data is not None else ''
 
             if izv['code'] == 'TC4A':
                 data = re.search(r"\(72\) Автор\(ы\):\s*"
