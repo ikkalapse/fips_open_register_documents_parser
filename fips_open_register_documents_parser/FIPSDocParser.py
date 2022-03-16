@@ -181,9 +181,16 @@ class FIPSDocPatentParser(FIPSDocParser):
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['authors'] = data.group(1) if data is not None else ''
-
+            '''
+            <p class="NameIzv">PD4A - Изменение наименования обладателя патента Российской Федерации на изобретение</p>
+            <p class="izv">
+                                    (73) Новое наименование патентообладателя:
+                                <br>
+            <b>Открытое акционерное общество "Металлург" (RU)</b>
+            </p>
+            '''
             if izv['code'] == 'PD4A':
-                data = re.search(r"\(73\) (?:Новый\s+)?Патентообладатель(?:\(и\))?:<br><b>(.+?)</b>",
+                data = re.search(r"\(73\) (?:Нов[а-яё]{2}\s+)?(?:\s*наименование\s+)?Патентообладател[ь|я](?:\(и\))?:<br><b>(.+?)</b>",
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
