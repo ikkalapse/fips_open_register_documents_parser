@@ -84,9 +84,12 @@ class FIPSDocPatentParser(FIPSDocParser):
     def find_pub_date(self):
         """Дата публикации."""
 
+        #<p>(45) Опубликовано:
+		#							<b>10.08.2000</b>
+		#										Бюл. № <b>22</b>
         data = re.search(
             r"<p>(?:\(45\))?\s*Опубликовано:\s*(?:<br>)?[\s\n\t]*<b>(?:<a title=\WОфициальная "
-            r"публикация.+?target=\"_blank\">)(.+?)(?:</a>)",
+            r"публикация.+?target=\"_blank\">)?([\d\.]{10}?)(?:</a>)?",
             self.html_data)
         self.parsed['pub_date'] = data.group(1) if data is not None else ''
 
