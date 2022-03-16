@@ -244,9 +244,11 @@ class FIPSDocEVMDBParser(FIPSDocParser):
     def find_holders_new(self):
         """Правообладатели, которые указаны в извещениях."""
 
-        data = re.findall(r"<p class=\"izv\">.*?правообладател[ьи].*</p>\n?(?:<p class=\"izv2\">Следует "
-                          r"читать:</p>\n?)?<p class=\"izvValue\">(.+?)</p>",
-                          self.html_data, flags=re.IGNORECASE)
+        data = re.findall(
+            r"<p class=\"izv\">.*?правообладател[ьи](?! \(правопреемник\)).*</p>\n?(?:<p class=\"izv2\">Следует "
+            r"читать:</p>\n?)?<p class=\"izvValue\">(.+?)</p>",
+            self.html_data, flags=re.IGNORECASE)
+
         self.parsed['holders_izv'] = data
 
     def find_authors_new(self):
@@ -304,12 +306,5 @@ class FIPSDocDBParser(FIPSDocEVMDBParser):
 class FIPSDocTIMSParser(FIPSDocEVMDBParser):
     """Парсер свидетельства о регистрации ТИМС."""
 
-    def find_holders_new(self):
-        """Правообладатели, которые указаны в извещениях."""
-
-        data = re.findall(r"<p class=\"izv\">.*?правообладател[ьи](?!\s+\(правопреемник\)).*</p>\n?(?:<p class=\"izv2\">Следует "
-                          r"читать:</p>\n?)?<p class=\"izvValue\">(.+?)</p>",
-                          self.html_data, flags=re.IGNORECASE)
-
-        self.parsed['holders_izv'] = data
+    pass
 
