@@ -64,6 +64,144 @@ class FIPSDocParser:
         self.parsed['reg_date'] = data.group(1) if data is not None else ''
 
 
+class FIPSDocPatentDesignParser(FIPSDocParser):
+
+    def find_reg_date(self):
+        """Дата регистрации."""
+
+        data = re.search(r"<p>(?:\(\d{2}\))?\s*Дата регистрации:[\s\n\t]*(?:<br>)?[\s\n\t]*<b>(\d{2}\.\d{2}\.\d{4})</b>",
+                         self.html_data)
+        self.parsed['reg_date'] = data.group(1) if data is not None else ''
+
+    def find_app_date(self):
+        """Данные заявки на выдачу патента."""
+
+        data = re.search(r"\(22\)\s*Дата подачи заявки:\s*<b>(\d{2}\.\d{2}\.\d{4})</b>",
+                         self.html_data)
+        self.parsed['app_date'] = data.group(1) if data is not None else ''
+
+    def find_title(self):
+        """Название патента"""
+        data = re.search(r"\(54\)\s*<b>(.+)?</b>",
+                         self.html_data)
+        self.parsed['title'] = data.group(1) if data is not None else ''
+
+    def find_app_number(self):
+        """Данные заявки на выдачу патента."""
+
+        data = re.search(r"\(21\)\s*Номер заявки:\s*<b>(?:<a.+>)?(\d+)(?:</a>)?</b>",
+                         self.html_data)
+        self.parsed['app_number'] = data.group(1) if data is not None else ''
+
+    def find_start_date(self):
+        """Сведения об авторах."""
+
+        data = re.search(r"\(24\)\s*Дата.+действия патента\:\s*<b>(\d{2}\.\d{2}\.\d{4})</b>",
+                         self.html_data)
+        self.parsed['start_date'] = data.group(1) if data is not None else ''
+
+    def find_holders(self):
+        """Сведения о правообладателях."""
+
+        data = re.search(r"\(73\)\s*Патентообладател.{1,6}\:\s*<b>\s*(?:<br>)?(.+)\s*</b>",  #\s*<b>\s*(?:<br>)?(.+)</b>",
+                         self.html_data)
+        self.parsed['holders'] = data.group(1) if data is not None else ''
+        self.parsed['holders'] = re.sub(r",?<br>$", "", self.parsed['holders'])
+
+    def find_authors(self):
+        """Сведения об авторах."""
+
+        data = re.search(r"\(72\)\s*Автор(?:\(ы\))?\:\s*<b>\s*(?:<br>)?(.+)</b>",
+                         self.html_data)
+        self.parsed['authors'] = data.group(1) if data is not None else ''
+
+    def find_status(self):
+        """Статус патента."""
+
+        status = re.search(r"<td id=\"StatusR\">(.+?)(\(|\n|<br)", self.html_data)
+        self.parsed['status'] = status.group(1) if status is not None else ''
+
+    def find_izv(self):
+        """Извещения об изменениях в патенте."""
+
+        r = re.compile(r"<p class=\"NameIzv\">"
+                       r"(?P<full_name>(?:(?P<code>[A-Z\d]{4}?) (?:\- )?)?(?P<name>.+?))</p>"
+                       r"(<p class=\"izv2\"></p>)?"
+                       r"(?P<text>.+?)"  # текст извещения до даты внесения записи в Госреестр
+                       r"<p class=\"izv\">(?:Дата публикации|Извещение опубликовано|Дата публикации и номер бюллетеня): <b>.*?"
+                       r"(?P<pub_date>\d{2}\.\d{2}\.\d{4}?)</[a-z]>",
+                       flags=re.IGNORECASE)
+        # Оставляем извещения, связанные с изменением данных о правообладателях и авторах
+        codes = 'PC4L PD4L PD4A PC4A TK4A TC4A'.split()
+        self.parsed['izv'] = [x for x in [m.groupdict() for m in r.finditer(self.html_data_min)] if x['code'] in codes]
+        self.extract_izv()
+
+    def extract_izv(self):
+        """Извлечение имён новых авторов и/или патентообладателей."""
+
+        for i, izv in enumerate(self.parsed['izv']):
+
+            if izv['code'] == 'PC4L':
+                data = re.search(r"\(73\) Патентообладател[^\:]+\:\s*"
+                                 r"(?:<br><b>|<b><br>)(.+?)</b>",
+                                 izv['text'],
+                                 flags=re.IGNORECASE)
+                self.parsed['izv'][i]['holders'] = data.group(1) if data is not None else ''
+
+            if izv['code'] == 'PD4L':
+                data = re.search(r"\(73\) Патентообладател.+\:\s*"
+                                 r"(?:<br><b>|<b><br>)(.+?)</b>",
+                                 izv['text'],
+                                 flags=re.IGNORECASE)
+                self.parsed['izv'][i]['holders'] = data.group(1) if data is not None else ''
+
+            if izv['code'] == 'TK4A':
+                data = re.search(r"<p class=\"izv\">Следует читать.+?"
+                                 r"\(73\) Патентообладатель\(и\):\s*"
+                                 r"<br>(?:<b>)?(.+?)(?:</ru-[a-z\d]+>|</b>|<br>)",
+                                 izv['text'],
+                                 flags=re.IGNORECASE)
+                self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
+                # проверка авторов -- соотвтствие шаблону 1
+                data = re.search(r"<p class=\"izv\">Следует читать.+?"
+                                 r"\(72\) Автор\(ы\):\s*"
+                                 r"<br>(?:<b>)?(.+?)(?:</b>|<br>)",
+                                 izv['text'],
+                                 flags=re.IGNORECASE)
+                self.parsed['izv'][i]['authors'] = data.group(1) if data is not None else ''
+                # проверка авторов -- соответствие шаблону 2
+                if self.parsed['izv'][i]['authors'] == '':
+                    # пример:
+                    # <p class="izv">Следует читать: <b><ru-b906i>(72) иванов, Петров, Сидоров</ru-b906i></b></p>
+                    data = re.search(r"<p class=\"izv\">Следует читать.+?"
+                                     r"(?:<b>)?(?:<ru\-[\da-z]+>)?"
+                                     r"\(72\)\s*(?:<b>)?(.+?)(?:</ru\-[\da-z]+>)?(?:</b>|<br>|</p>)",
+                                     izv['text'],
+                                     flags=re.IGNORECASE)
+                    self.parsed['izv'][i]['authors'] = data.group(1) if data is not None else ''
+
+            if izv['code'] == 'TC4A':
+                data = re.search(r"\(72\) Автор\(ы\):\s*"
+                                 r"<br><b>(.+?)</b>",
+                                 izv['text'],
+                                 flags=re.IGNORECASE)
+                self.parsed['izv'][i]['authors'] = data.group(1) if data is not None else ''
+
+            if izv['code'] == 'PD4A':
+                data = re.search(r"\(73\) (?:Нов[а-яё]{2}\s+)?(?:\s*наименование\s+)?Патентообладател[ь|я](?:\(и\))?:<br><b>(.+?)</b>",
+                                 izv['text'],
+                                 flags=re.IGNORECASE)
+                self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
+
+            if izv['code'] == 'PC4A':
+                data = re.search(r"\(73\) (?:Новый\s+)?Патентообладатель(?:\(и\))?:<br><b>(.+?)</b>",
+                                 izv['text'],
+                                 flags=re.IGNORECASE)
+                self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
+
+        self.parsed['izv'] = sorted(self.parsed['izv'], key=itemgetter('pub_date'), reverse=True)
+
+
 class FIPSDocPatentParser(FIPSDocParser):
 
     def find_status(self):
