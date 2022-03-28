@@ -233,6 +233,16 @@ class FIPSDocPatentParser(FIPSDocParser):
 
         data = re.search(r"<p>\(72\) Автор\(ы\):<b>[\s\n\t]*(?:<br>)?(.+?)</b>", self.html_data)
         self.parsed['authors'] = data.group(1) if data is not None else ''
+        '''
+        <p class="izv">(72) Автор(ы):<br>
+        <b>Дубин Дмитрий Андреевич (RU),<br>Вдовин Денис Сергеевич (RU),<br>Ципилев Александр Анатольевич (RU),<br>Дьяков Алексей Сергеевич (RU),<br>Евсеев Кирилл Борисович (RU),<br>Чутков Константин Александрович (RU),<br>Шарабанова Анна Андреевна (RU)</b>
+        </p>
+        '''
+        data = re.search(r"<p class=\"izv\">\(72\) Автор\(ы\):<br>[\s\n\t]*<b>(.+?)</b>", self.html_data)
+        if data is not None:
+            self.parsed['authors_izv'] = []
+            for gr in data.groups():
+                self.parsed['authors_izv'].append(gr)
 
     def find_holders(self):
         """Патентообладатели."""
@@ -283,7 +293,7 @@ class FIPSDocPatentParser(FIPSDocParser):
                        r"(?P<pub_date>\d{2}\.\d{2}\.\d{4}?)</[a-z]>",
                        flags=re.IGNORECASE)
         # Оставляем извещения, связанные с изменением данных о правообладателях и авторах
-        codes = 'PD4A PC4A TK4A TC4A'.split()
+        codes = 'PD4A PC4A TK4A TC4A PD9K PC9K'.split()
         self.parsed['izv'] = [x for x in [m.groupdict() for m in r.finditer(self.html_data_min)] if x['code'] in codes]
         self.extract_izv()
 
@@ -322,21 +332,14 @@ class FIPSDocPatentParser(FIPSDocParser):
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['authors'] = data.group(1) if data is not None else ''
-            '''
-            <p class="NameIzv">PD4A - Изменение наименования обладателя патента Российской Федерации на изобретение</p>
-            <p class="izv">
-                                    (73) Новое наименование патентообладателя:
-                                <br>
-            <b>Открытое акционерное общество "Металлург" (RU)</b>
-            </p>
-            '''
+
             if izv['code'] == 'PD4A':
                 data = re.search(r"\(73\) (?:Нов[а-яё]{2}\s+)?(?:\s*наименование\s+)?Патентообладател[ь|я](?:\(и\))?:<br><b>(.+?)</b>",
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
 
-            if izv['code'] == 'PC4A':
+            if izv['code'] in ['PC4A', 'PD9K', 'PC9K']:
                 data = re.search(r"\(73\) (?:Новый\s+)?Патентообладатель(?:\(и\))?:<br><b>(.+?)</b>",
                                  izv['text'],
                                  flags=re.IGNORECASE)
