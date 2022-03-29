@@ -293,7 +293,7 @@ class FIPSDocPatentParser(FIPSDocParser):
                        r"(?P<pub_date>\d{2}\.\d{2}\.\d{4}?)</[a-z]>",
                        flags=re.IGNORECASE)
         # Оставляем извещения, связанные с изменением данных о правообладателях и авторах
-        codes = 'PD4A PC4A TK4A TC4A PD9K PC9K'.split()
+        codes = 'PD4A PC4A TK4A TC4A PD9K PC9K PD1K PC1K'.split()
         self.parsed['izv'] = [x for x in [m.groupdict() for m in r.finditer(self.html_data_min)] if x['code'] in codes]
         self.extract_izv()
 
@@ -333,13 +333,13 @@ class FIPSDocPatentParser(FIPSDocParser):
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['authors'] = data.group(1) if data is not None else ''
 
-            if izv['code'] == 'PD4A':
+            if izv['code'] in ['PD4A', 'PD1K']:
                 data = re.search(r"\(73\) (?:Нов[а-яё]{2}\s+)?(?:\s*наименование\s+)?Патентообладател[ь|я](?:\(и\))?:<br><b>(.+?)</b>",
                                  izv['text'],
                                  flags=re.IGNORECASE)
                 self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
 
-            if izv['code'] in ['PC4A', 'PD9K', 'PC9K']:
+            if izv['code'] in ['PC4A', 'PD9K', 'PC9K', 'PC1K']:
                 data = re.search(r"\(73\) (?:Новый\s+)?Патентообладатель(?:\(и\))?:<br><b>(.+?)</b>",
                                  izv['text'],
                                  flags=re.IGNORECASE)
