@@ -146,14 +146,14 @@ class FIPSDocPatentDesignParser(FIPSDocParser):
                                  r"(?:<br><b>|<b><br>)(.+?)</b>",
                                  izv['text'],
                                  flags=re.IGNORECASE)
-                self.parsed['izv'][i]['holders'] = data.group(1) if data is not None else ''
+                self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
 
             if izv['code'] == 'PD4L':
                 data = re.search(r"\(73\) Патентообладател.+\:\s*"
                                  r"(?:<br><b>|<b><br>)(.+?)</b>",
                                  izv['text'],
                                  flags=re.IGNORECASE)
-                self.parsed['izv'][i]['holders'] = data.group(1) if data is not None else ''
+                self.parsed['izv'][i]['holder'] = data.group(1) if data is not None else ''
 
             if izv['code'] == 'TK4A':
                 data = re.search(r"<p class=\"izv\">Следует читать.+?"
